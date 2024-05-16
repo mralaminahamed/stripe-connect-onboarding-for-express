@@ -1,30 +1,38 @@
 <?php
-use Slim\Http\Request;
-use Slim\Http\Response;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
 use Stripe\Stripe;
 
 require 'vendor/autoload.php';
 
-$dotenv = Dotenv\Dotenv::create(__DIR__);
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 require './config.php';
 
-$app = new \Slim\App;
+// Instantiate App
+$app = AppFactory::create();
+
+// Add error middleware
+$app->addErrorMiddleware(true, true, true);
 
 // Instantiate the logger as a dependency
 $container = $app->getContainer();
-$container['logger'] = function ($c) {
+$container['logger'] = static function ($c) {
   $settings = $c->get('settings')['logger'];
   $logger = new Monolog\Logger($settings['name']);
   $logger->pushProcessor(new Monolog\Processor\UidProcessor());
   $logger->pushHandler(new Monolog\Handler\StreamHandler(__DIR__ . '/logs/app.log', \Monolog\Logger::DEBUG));
+
   return $logger;
 };
 
-$app->add(function ($request, $response, $next) {
-    Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
-    return $next($request, $response);
+$app->add(function ($request, $handler) {
+
+	Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
+
+  return $handler->handle($request);
 });
 
 $app->post('/onboard-user', function (Request $request, Response $response, array $args) {
@@ -32,12 +40,17 @@ $app->post('/onboard-user', function (Request $request, Response $response, arra
   $account = \Stripe\Account::create(['type' => 'express']);
 
   session_start();
+
   $_SESSION['account_id'] = $account->id;
 
   $origin = $request->getHeaderLine('Origin');
   $account_link_url = generate_account_link($account->id, $origin);
+
+	$payload = json_encode(['url' => $account_link_url]);
+
+	$response->getBody()->write($payload);
   
-  return $response->withJson(array('url' => $account_link_url));
+  return $response->withHeader('Content-type', 'application/json');
 });
 
 $app->get('/onboard-user/refresh', function (Request $request, Response $response, array $args) {
@@ -70,8 +83,8 @@ function generate_account_link(string $account_id, string $origin) {
   return $account_link->url;
 }
 
-$app->get('/', function (Request $request, Response $response, array $args) {   
-  return $response->write(file_get_contents(getenv('STATIC_DIR') . '/index.html'));
+$app->get('/', function (Request $request, Response $response, array $args) {
+  return $response->getBody()->write(file_get_contents(getenv('STATIC_DIR') . '../../client/index.html'));
 });
 
 $app->run();

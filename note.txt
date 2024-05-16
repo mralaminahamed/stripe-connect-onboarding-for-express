@@ -1,0 +1,4 @@
+Update: create app with new slim factory
+Fix: Fatal error: Uncaught RuntimeException: Could not detect any PSR-17 ResponseFactory implementations. Please install a supported implementation in order to use `AppFactory::create()`. See https://github.com/slimphp/Slim/blob/4.x/README.md for a list of supported implementations. in /Users/name/Contributions/stripe-connect-onboarding-for-express/server/php/vendor/slim/slim/Slim/Factory/AppFactory.php on line 141
+Fix: Fatal error: Uncaught ArgumentCountError: Too few arguments to function {closure}(), 2 passed in /Users/alaminahamed/Contributions/stripe-connect-onboarding-for-express/server/php/vendor/slim/slim/Slim/MiddlewareDispatcher.php on line 269 and exactly 3 expected in /Users/name/Contributions/stripe-connect-onboarding-for-express/server/php/index.php on line 30
+Update: new json response # https://www.slimframework.com/docs/v4/objects/response.html#returning-json
